@@ -5,18 +5,25 @@
 //  Created by Gustavo Kamitani on 08/08/24.
 //
 
-import Foundation
 import UIKit
 
-class CreateUserViewController: UIViewController {
+class CreateUserViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
+
+    var teamPickerView: UIPickerView!
+    var teamInputField: UITextField!
 
     var rightButton: UIButton!
     var leftButton: UIButton!
-    
+    var nameTextField: UITextField!
+    var numberTextField: UITextField!
+    var isRightHand: Bool = true
+
+    let teams = ["Anhanguera", "Atibaia", "Dourados", "Gecebs", "Ibiúna", "Londrina", "Marília", "Maringá", "MT", "Medicina USP", "Nikkei Curitiba", "Nippon Blue Jays", "Pinheiros", "Presidente Prudente"]
+
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = UIColor(.white)
+        view.backgroundColor = .white
         configureNavigationBar()
         configureUIElements()
     }
@@ -42,11 +49,36 @@ class CreateUserViewController: UIViewController {
         subtitleLabel.textAlignment = .left
         subtitleLabel.numberOfLines = 0
         
-        let teamTextField = createTextFieldWithBottomBorder(placeholder: "Time")
-        let nameTextField = createTextFieldWithBottomBorder(placeholder: "Nome")
-        let numberTextField = createTextFieldWithBottomBorder(placeholder: "Número")
+        // Configuração do UIPickerView
+        teamPickerView = UIPickerView()
+        teamPickerView.delegate = self
+        teamPickerView.dataSource = self
+
+        // Campo de input para o time
+        teamInputField = UITextField()
+        teamInputField.placeholder = "Time"
+        teamInputField.borderStyle = .none
+        teamInputField.inputView = teamPickerView
+        teamInputField.delegate = self
+        teamInputField.isUserInteractionEnabled = true
+        teamInputField.translatesAutoresizingMaskIntoConstraints = false
+
+        // Adicionando uma visualização para a borda inferior
+        let bottomLine = UIView()
+        bottomLine.backgroundColor = UIColor.systemGray3
+        bottomLine.translatesAutoresizingMaskIntoConstraints = false
+        teamInputField.addSubview(bottomLine)
         
-        // Utilizar as propriedades da classe para os botões
+        NSLayoutConstraint.activate([
+            bottomLine.heightAnchor.constraint(equalToConstant: 1),
+            bottomLine.leadingAnchor.constraint(equalTo: teamInputField.leadingAnchor),
+            bottomLine.trailingAnchor.constraint(equalTo: teamInputField.trailingAnchor),
+            bottomLine.bottomAnchor.constraint(equalTo: teamInputField.bottomAnchor, constant: 10)
+        ])
+
+        nameTextField = createTextFieldWithBottomBorder(placeholder: "Nome")
+        numberTextField = createTextFieldWithBottomBorder(placeholder: "Número")
+        
         rightButton = UIButton(type: .system)
         rightButton.setTitle("Destro", for: .normal)
         rightButton.addTarget(self, action: #selector(rightButtonTapped), for: .touchUpInside)
@@ -81,13 +113,12 @@ class CreateUserViewController: UIViewController {
         addButton.layer.borderColor = UIColor.systemBlue.cgColor
         addButton.setTitleColor(.white, for: .normal)
         roundButtonCorners(addButton, radius: 10)
+        addButton.addTarget(self, action: #selector(addButtonTapped), for: .touchUpInside)
         
-        let stackView = UIStackView(arrangedSubviews: [teamTextField, nameTextField, numberTextField, buttonStackView, addButton])
+        let stackView = UIStackView(arrangedSubviews: [titleLabel, subtitleLabel, teamInputField, nameTextField, numberTextField, buttonStackView, addButton])
         stackView.axis = .vertical
         stackView.spacing = 30
         
-        view.addSubview(titleLabel)
-        view.addSubview(subtitleLabel)
         view.addSubview(stackView)
         
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -97,23 +128,10 @@ class CreateUserViewController: UIViewController {
         addButton.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 0),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 10),
-            subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            stackView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 20),
+            stackView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
             stackView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             stackView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            buttonStackView.centerXAnchor.constraint(equalTo: stackView.centerXAnchor),
-            buttonStackView.topAnchor.constraint(equalTo: numberTextField.bottomAnchor, constant: 40),
-            
-            addButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            addButton.topAnchor.constraint(equalTo: rightButton.bottomAnchor, constant: 40)
+            stackView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20)
         ])
     }
     
@@ -124,8 +142,7 @@ class CreateUserViewController: UIViewController {
         textField.translatesAutoresizingMaskIntoConstraints = false
         
         let bottomLine = CALayer()
-        bottomLine.frame = CGRect(x: 0, y: textField.frame.height - 1, width: textField.frame.width, height: 1) // Ajuste aqui
-        
+        bottomLine.frame = CGRect(x: 0, y: textField.frame.height - 1, width: textField.frame.width, height: 1)
         bottomLine.backgroundColor = UIColor.systemGray3.cgColor
         textField.layer.addSublayer(bottomLine)
         textField.layer.masksToBounds = true
@@ -151,6 +168,8 @@ class CreateUserViewController: UIViewController {
         leftButton.backgroundColor = .white
         leftButton.setTitleColor(.systemBlue, for: .normal)
         leftButton.layer.borderColor = UIColor.systemBlue.cgColor
+        
+        isRightHand = true
     }
 
     @objc func leftButtonTapped() {
@@ -160,6 +179,68 @@ class CreateUserViewController: UIViewController {
         rightButton.backgroundColor = .white
         rightButton.setTitleColor(.systemBlue, for: .normal)
         rightButton.layer.borderColor = UIColor.systemBlue.cgColor
+        
+        isRightHand = false
     }
 
+    @objc func addButtonTapped() {
+        guard let team = teamInputField.text, !team.isEmpty,
+              let name = nameTextField.text, !name.isEmpty,
+              let number = numberTextField.text, !number.isEmpty else {
+            let alert = UIAlertController(title: "Erro", message: "Preencha todos os campos", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true, completion: nil)
+            return
+        }
+        
+        // Cria um novo Player usando o ManagerPlayer
+        ManagerPlayer.shared.createPlayer(name: name, team: team, number: number, isRightHand: isRightHand)
+        
+        teamInputField.text = ""
+        nameTextField.text = ""
+        numberTextField.text = ""
+        isRightHand = true
+
+        rightButtonTapped()
+        
+        if let tabBarController = self.tabBarController as? UserTabBarController {
+            tabBarController.selectedIndex = 1
+        }
+        
+        // Notificar o usuário que o jogador foi adicionado com sucesso
+        let successAlert = UIAlertController(title: "Sucesso", message: "Jogador adicionado com sucesso!", preferredStyle: .alert)
+        successAlert.addAction(UIAlertAction(title: "OK", style: .default))
+        
+        present(successAlert, animated: true, completion: nil)
+    }
+    
+    // MARK: - UIPickerViewDelegate, UIPickerViewDataSource
+    
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return teams.count
+    }
+
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return teams[row]
+    }
+
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        teamInputField.text = teams[row]
+    }
+    
+    // MARK: - UITextFieldDelegate
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        // Bloqueia qualquer alteração no texto
+        return false
+    }
+    
+    func textFieldShouldBeginEditing(_ textField: UITextField) -> Bool {
+        // Permite que o pickerView seja mostrado
+        return true
+    }
 }
